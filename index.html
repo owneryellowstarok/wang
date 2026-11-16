@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<meta name="theme-color" content="#15294D" />
+<meta name="theme-color" content="#17171a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="黄星记录" />
@@ -118,7 +118,7 @@
   header .sub { font-size: 11px; opacity: 0.78; }
   .pin-logo { display: flex; flex-direction: column; align-items: center; margin-bottom: 14px; }
   .pin-logo svg { width: 84px; height: 84px; filter: drop-shadow(0 2px 3px rgba(21,41,77,0.25)); }
-  .pin-logo .pw { font-size: 24px; font-weight: 800; letter-spacing: 4px; color: var(--navy); margin-top: 4px; }
+  .pin-logo .pw { font-size: 24px; font-weight: 800; letter-spacing: 4px; color: #17171a; margin-top: 4px; }
   .pin-logo .rule { width: 120px; height: 2px; background: var(--gold); margin: 6px 0 4px; border-radius: 2px; }
   .pin-logo .llc { font-size: 11px; font-weight: 700; letter-spacing: 6px; color: var(--gold-dark); padding-left: 6px; }
   .card { border: 1px solid rgba(21,41,77,0.06); box-shadow: 0 2px 8px rgba(21,41,77,0.08); }
@@ -141,6 +141,35 @@
   .stepper { background: linear-gradient(180deg, #1d3766, #15294D); box-shadow: 0 2px 5px rgba(21,41,77,0.25); }
   .stepper:disabled { box-shadow: none; }
   footer { box-shadow: 0 -2px 8px rgba(21,41,77,0.06); }
+
+  /* ---- Black + gold theme (11/16/26: moved off blue) ---- */
+  :root { --navy: #17171a; --text: #17171a; --photo: #F2B01E; --harvest: #1f6f43; --bg: #f5f4f1; --line: #e4e2dc; }
+  body { background: linear-gradient(180deg, #efede8 0%, #f7f6f3 240px); }
+  header { background: linear-gradient(135deg, #050505 0%, #17171a 60%, #2a2a2e 100%); box-shadow: 0 2px 10px rgba(0,0,0,0.35); }
+  .card { border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  h2::after { background: linear-gradient(90deg, rgba(0,0,0,0.2), rgba(0,0,0,0)); }
+  .tile { border: 1.5px solid #dedbd3; box-shadow: 0 1px 3px rgba(0,0,0,0.08); background: linear-gradient(180deg, #ffffff, #faf9f6); color: #17171a; }
+  .tile.has-photo { border-color: var(--gold-dark); background: linear-gradient(180deg, #fffaea, #fdefc4); }
+  .tile.has-photo .badge { color: #8a5a00; }
+  .tile.harvested { border-color: #1f6f43; background: linear-gradient(180deg, #f1faf4, #dcf2e4); }
+  .tile.harvested .badge { color: #1f6f43; }
+  .tile.skipped { border-color: #6b6b70; background: linear-gradient(180deg, #f4f4f2, #e6e5e1); }
+  .tile.skipped .badge { color: #55555a; }
+  .btn { box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+  .btn-ghost { box-shadow: none; }
+  .btn-primary { background: linear-gradient(180deg, #2c2c30, #17171a); color: #fff; }
+  .btn-photo { background: linear-gradient(180deg, #f7bf3a, #F2B01E); color: #17171a; border: 1px solid var(--gold-dark); }
+  .btn-harvest { background: linear-gradient(180deg, #2a8553, #1f6f43); color: #fff; }
+  .btn-harvest.done, .btn-skip.done { background: linear-gradient(180deg, #17171a, #17171a); color: var(--gold); border: 2px solid var(--gold); }
+  .btn-skip { background: linear-gradient(180deg, #77777c, #5c5c61); }
+  .btn-send { background: linear-gradient(180deg, #2c2c30, #17171a); color: var(--gold); border: 2px solid var(--gold); }
+  .stepper { background: linear-gradient(180deg, #2c2c30, #17171a); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+  .stepper:disabled { background: #d2d0ca; box-shadow: none; }
+  .status { color: #1f6f43; }
+  .room-note { background: #fffaea; border-color: var(--gold-dark); color: #5c3d00; }
+  .photo-tile { border-color: var(--gold-dark); }
+  .photo-tile .remove { background: rgba(0,0,0,0.8); }
+  footer { box-shadow: 0 -2px 8px rgba(0,0,0,0.06); }
 </style>
 </head>
 <body>
@@ -539,7 +568,7 @@
     const doc = new jsPDF({ unit: "pt", format: "letter" });
     const W = 612, H = 792, M = 40;
     function drawHeader(small) {
-      doc.setFillColor(31, 58, 95);
+      doc.setFillColor(23, 23, 26);
       doc.rect(0, 0, W, small ? 36 : 60, "F");
       doc.setTextColor(255);
       doc.setFont("helvetica", "bold");
@@ -562,7 +591,7 @@
     body.push(["TOTAL", "", "Non-MMJ waste bags out today", String(bagsTotal)]);
     doc.autoTable({
       head: [["Room", "Type", "Result", "Waste bags"]], body, startY: 76, theme: "striped",
-      headStyles: { fillColor: [31, 58, 95], textColor: 255, fontSize: 10, fontStyle: "bold" },
+      headStyles: { fillColor: [23, 23, 26], textColor: 255, fontSize: 10, fontStyle: "bold" },
       bodyStyles: { fontSize: 10, cellPadding: 5 },
       margin: { left: M, right: M },
       columnStyles: { 0: { cellWidth: 60, fontStyle: "bold" }, 1: { cellWidth: 60 }, 2: { cellWidth: "auto" }, 3: { cellWidth: 70, halign: "center" } }

@@ -1,7 +1,7 @@
 // Yellow Star - Mr. Wang log - offline cache
 // Bump this version any time index.html changes.
 const PREFIX = "yellowstar-wang-";
-const CACHE = PREFIX + "v3";
+const CACHE = PREFIX + "v4";
 
 const LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",

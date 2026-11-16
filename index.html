@@ -91,6 +91,13 @@
   .stepper:disabled { background: #cbd5e1; }
   .bag-num { font-size: 48px; font-weight: 800; color: var(--navy); line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
   .bag-label { color: var(--muted); font-size: 15px; margin-top: 4px; text-align: center; }
+  .btn-skip { background: #475569; color: #fff; }
+  .btn-skip.done { background: var(--good); }
+  .tile.skipped { border-color: #475569; background: #f1f5f9; }
+  .tile.skipped .badge { color: #475569; }
+  .room-note { background: #fff7ed; border: 2px solid var(--harvest); color: #7c2d12; border-radius: 12px; padding: 12px 14px; font-size: 16px; font-weight: 600; text-align: center; line-height: 1.5; }
+  .missed-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .missed-list button { background: #fff; border: 2px solid var(--warn); color: var(--warn); border-radius: 10px; padding: 12px 16px; font-size: 20px; font-weight: 800; font-family: inherit; cursor: pointer; }
   .note { text-align: center; color: var(--muted); font-size: 13px; }
   .status { text-align: center; font-size: 16px; font-weight: 700; color: var(--harvest); min-height: 22px; }
 
@@ -134,15 +141,28 @@
       <button class="btn btn-ghost" id="btnReset">清空重来</button>
     </section>
 
+    <!-- MISSED-ROOM CHECK -->
+    <section class="screen" id="screen-check">
+      <div class="card">
+        <h1 style="color:var(--warn)">⚠️ 还有房间没有记录</h1>
+        <p style="margin:0 0 12px; font-size:15px; color:var(--muted);">点房间名可以直接去补</p>
+        <div class="missed-list" id="missedList"></div>
+      </div>
+      <button class="btn btn-primary" id="btnCheckBack">← 返回补充</button>
+      <button class="btn btn-ghost" id="btnSendAnyway" style="color:var(--warn); font-size:17px; font-weight:700;">不补了，直接发送</button>
+    </section>
+
     <!-- ROOM -->
     <section class="screen" id="screen-room">
       <div class="room-name" id="roomName">A1</div>
       <div class="room-sub" id="roomSub"></div>
+      <div class="room-note" id="roomNote" style="display:none">没有开花 = 育苗室，请点「跳过」</div>
       <div class="status" id="roomStatus"></div>
       <div id="photoGrid" class="photo-grid"></div>
       <button class="btn btn-photo" id="btnPhoto">📷 拍照</button>
       <input type="file" id="inputImage" accept="image/*" multiple style="display:none" />
       <button class="btn btn-harvest" id="btnHarvested">✂️ 已收割</button>
+      <button class="btn btn-skip" id="btnSkip" style="display:none">⏭ 跳过</button>
       <div class="card bag-card">
         <button class="stepper" id="bagsMinus" aria-label="减少">−</button>
         <div><div class="bag-num" id="bagNum">0</div><div class="bag-label">🗑 垃圾袋数</div></div>
@@ -165,8 +185,9 @@
     { sec: "flower", name: "C1" }, { sec: "flower", name: "C2" }, { sec: "flower", name: "C3" }, { sec: "flower", name: "C4" },
     { sec: "flower", name: "C5" }, { sec: "flower", name: "C6" }, { sec: "flower", name: "F2" },
     { sec: "veg",    name: "D"  }, { sec: "veg",    name: "E"  }, { sec: "veg",    name: "G"  }, { sec: "veg",    name: "GH3" }, { sec: "veg",    name: "GH4" },
-    { sec: "prop",   name: "F1" }, { sec: "prop",   name: "H"  }
+    { sec: "prop",   name: "F"  }, { sec: "prop",   name: "H"  }
   ];
+  const SKIP_ROOMS = { F2: "nursery, no flowers" };   // rooms that get the skip button + note
   const SEC_ZH = { flower: "开花房", veg: "营养生长房", prop: "育苗房" };
   const SEC_EN = { flower: "FLOWER", veg: "VEG", prop: "PROP" };
   const MAX_PHOTOS = 10;
@@ -218,7 +239,7 @@
       for (const k in state.results) {
         const r = state.results[k];
         lite.results[k] = {
-          harvested: !!r.harvested, harvestDate: r.harvestDate || null, bags: r.bags || 0,
+          harvested: !!r.harvested, harvestDate: r.harvestDate || null, bags: r.bags || 0, skipped: !!r.skipped,
           images: (r.images || []).map(i => ({ id: i.id, name: i.name }))
         };
       }
@@ -238,13 +259,14 @@
   }
   function hasEntry(name) {
     const r = state.results[name];
-    return !!r && (r.harvested || (r.bags || 0) > 0 || (r.images || []).length > 0);
+    return !!r && (r.harvested || r.skipped || (r.bags || 0) > 0 || (r.images || []).length > 0);
   }
   function prune(name) { if (!hasEntry(name)) delete state.results[name]; }
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
-  const screens = { pin: $("screen-pin"), home: $("screen-home"), room: $("screen-room") };
+  const screens = { pin: $("screen-pin"), home: $("screen-home"), room: $("screen-room"), check: $("screen-check") };
+  const missedRooms = () => ROOMS.filter(r => !hasEntry(r.name)).map(r => r.name);
   const footer = $("footer");
   const btnSend = $("btnSend"), sendNote = $("sendNote"), btnReset = $("btnReset");
   const roomName = $("roomName"), roomSub = $("roomSub"), roomStatus = $("roomStatus");
@@ -272,22 +294,33 @@
       const hv = !!(res && res.harvested);
       const bg = res ? (res.bags || 0) : 0;
       const b = document.createElement("button");
-      b.className = "tile" + (hv ? " harvested" : ((n || bg) ? " has-photo" : ""));
+      const sk = !!(res && res.skipped);
+      b.className = "tile" + (hv ? " harvested" : (sk ? " skipped" : ((n || bg) ? " has-photo" : "")));
       b.dataset.room = r.name;
       const bits = [];
       if (hv) bits.push("已收割");
+      if (sk) bits.push("跳过");
       if (n) bits.push(`📷${n}`);
       if (bg) bits.push(`🗑${bg}`);
       const badge = bits.join(" ");
       b.innerHTML = `<span>${r.name}</span><span class="badge">${badge}</span>`;
       grids[r.sec].appendChild(b);
-      if (hv || n || bg) rooms++;
+      if (hv || n || bg || sk) rooms++;
       photos += n; bagsTotal += bg; if (hv) harvests++;
     });
     btnSend.disabled = rooms === 0;
-    sendNote.textContent = rooms === 0 ? "还没有记录" : `照片 ${photos} 张 · 已收割 ${harvests} 间 · 垃圾 ${bagsTotal} 袋`;
+    sendNote.textContent = rooms === 0 ? "还没有记录" : `照片 ${photos} 张 · 已收割 ${harvests} 间 · 垃圾 ${bagsTotal} 袋` +
+      (ROOMS.length - rooms > 0 ? `\n还有 ${ROOMS.length - rooms} 间没有记录` : "\n✓ 全部房间已记录");
+    sendNote.style.whiteSpace = "pre-line";
     btnReset.style.display = rooms === 0 ? "none" : "flex";
   }
+  function openRoom(name) { state.room = name; renderRoom(); show("room"); }
+  $("missedList").addEventListener("click", e => {
+    const t = e.target.closest("button");
+    if (t) openRoom(t.dataset.room);
+  });
+  $("btnCheckBack").addEventListener("click", () => { renderHome(); show("home"); });
+  $("btnSendAnyway").addEventListener("click", () => { renderHome(); show("home"); send(true); });
   screens.home.addEventListener("click", e => {
     const t = e.target.closest(".tile");
     if (!t) return;
@@ -319,6 +352,9 @@
     roomName.textContent = r.name;
     roomSub.textContent = SEC_ZH[r.sec];
     btnHarvested.style.display = r.sec === "flower" ? "flex" : "none";
+    const canSkip = !!SKIP_ROOMS[r.name];
+    $("roomNote").style.display = canSkip ? "block" : "none";
+    $("btnSkip").style.display = canSkip ? "flex" : "none";
     await hydrate(r.name);
     const res = state.results[r.name] || { images: [] };
     const images = (res.images || []).filter(i => i.dataUrl);
@@ -329,6 +365,8 @@
       tile.innerHTML = `<img src="${img.dataUrl}" alt=""><button class="remove" data-id="${img.id}" aria-label="删除">✕</button>`;
       photoGrid.appendChild(tile);
     });
+    $("btnSkip").classList.toggle("done", !!res.skipped);
+    $("btnSkip").textContent = res.skipped ? "✓ 已跳过（再点一次取消）" : "⏭ 跳过";
     $("bagNum").textContent = res.bags || 0;
     $("bagsMinus").disabled = !(res.bags > 0);
     const n = (res.images || []).length;
@@ -411,7 +449,16 @@
     const name = state.room;
     const res = resOf(name);
     if (res.harvested) { res.harvested = false; res.harvestDate = null; }
-    else { res.harvested = true; res.harvestDate = todayISO(); }
+    else { res.harvested = true; res.harvestDate = todayISO(); res.skipped = false; }
+    prune(name);
+    saveState();
+    renderRoom();
+  });
+  $("btnSkip").addEventListener("click", () => {
+    const name = state.room;
+    const res = resOf(name);
+    res.skipped = !res.skipped;
+    if (res.skipped) { res.harvested = false; res.harvestDate = null; }
     prune(name);
     saveState();
     renderRoom();
@@ -427,6 +474,7 @@
   $("bagsMinus").addEventListener("click", () => bumpBags(-1));
   $("bagsPlus").addEventListener("click", () => bumpBags(1));
   btnBack.addEventListener("click", () => { state.room = null; renderHome(); show("home"); });
+  btnSend.addEventListener("click", () => send());
 
   // ---------- PDF (English, for the compliance inbox) ----------
   function getImageDims(dataUrl) {
@@ -440,6 +488,7 @@
   function fmtResult(res) {
     const parts = [];
     if (res.harvested) parts.push(`HARVESTED ${res.harvestDate || state.date} · post-harvest cleaning complete`);
+    if (res.skipped) parts.push(`SKIPPED (${SKIP_ROOMS[res._name] || "no entry needed"})`);
     const n = (res.images || []).length;
     if (n) parts.push(`${n} photo(s) attached`);
     return parts.join(" · ") || "-";
@@ -469,7 +518,7 @@
     }
     drawHeader();
     const body = ROOMS.filter(r => hasEntry(r.name))
-      .map(r => [r.name, SEC_EN[r.sec], fmtResult(state.results[r.name]), String(state.results[r.name].bags || 0)]);
+      .map(r => [r.name, SEC_EN[r.sec], fmtResult(Object.assign({ _name: r.name }, state.results[r.name])), String(state.results[r.name].bags || 0)]);
     const bagsTotal = ROOMS.reduce((t, r) => t + ((state.results[r.name] || {}).bags || 0), 0);
     body.push(["TOTAL", "", "Non-MMJ waste bags out today", String(bagsTotal)]);
     doc.autoTable({
@@ -479,7 +528,19 @@
       margin: { left: M, right: M },
       columnStyles: { 0: { cellWidth: 60, fontStyle: "bold" }, 1: { cellWidth: 60 }, 2: { cellWidth: "auto" }, 3: { cellWidth: 70, halign: "center" } }
     });
-    let y = doc.lastAutoTable.finalY + 30;
+    let y = doc.lastAutoTable.finalY + 22;
+    const missed = missedRooms();
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+    if (missed.length) {
+      doc.setTextColor(185, 28, 28);
+      const lines = doc.splitTextToSize(`ROOMS WITH NO ENTRY (${missed.length}): ${missed.join(", ")}`, W - 2 * M);
+      doc.text(lines, M, y); y += lines.length * 13;
+    } else {
+      doc.setTextColor(22, 163, 74);
+      doc.text(`All ${ROOMS.length} rooms have an entry.`, M, y); y += 13;
+    }
+    doc.setTextColor(0);
+    y += 17;
     if (y > H - 80) { doc.addPage(); drawHeader(true); y = 80; }
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(102);
     doc.text(`Submitted by: ${SUBMITTED_BY}`, M, y);
@@ -511,7 +572,13 @@
     return doc.output("blob");
   }
 
-  async function send() {
+  async function send(force) {
+    const missed = missedRooms();
+    if (force !== true && missed.length) {
+      $("missedList").innerHTML = missed.map(n => `<button data-room="${n}">${n}</button>`).join("");
+      show("check");
+      return;
+    }
     const [y, m, d] = state.date.split("-");
     const subj = `Wang Log – ${m}/${d}/${y}`;
     const filename = `Wang_Log_${state.date}.pdf`;
@@ -542,7 +609,6 @@
     alert(`文件已下载：${filename}\n请用邮件发送到 ${SEND_TO}`);
     window.location.href = `mailto:${SEND_TO}?subject=${encodeURIComponent(subj)}`;
   }
-  btnSend.addEventListener("click", send);
 
   // ---------- PIN ----------
   const PIN_CODE = "2845";

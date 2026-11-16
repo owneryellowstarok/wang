@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="黄星记录" />
+<title>黄星 · 王先生记录</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --navy: #1f3a5f; --gold: #d9a300; --bg: #f6f8fb; --card: #ffffff;
+    --text: #0f1d31; --muted: #6b7280; --good: #16a34a; --warn: #b91c1c;
+    --line: #e5e7eb; --harvest: #b45309; --photo: #2563eb;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100%; overflow: hidden; user-select: none;
+  }
+  .app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+  header { background: var(--navy); color: #fff; padding: 14px 16px 12px; }
+  header .title { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
+  header .sub { font-size: 12px; opacity: 0.8; margin-top: 3px; }
+  main { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+  .screen { display: none; flex-direction: column; gap: 14px; }
+  .screen.active { display: flex; }
+  .card { background: var(--card); border-radius: 14px; padding: 18px; box-shadow: 0 1px 3px rgba(15,29,49,0.06); }
+  h1 { font-size: 22px; margin: 0 0 8px; color: var(--navy); }
+  h2 { font-size: 15px; margin: 4px 0 0; color: var(--muted); font-weight: 600; letter-spacing: 1px; }
+
+  .pin-input {
+    width: 100%; font-size: 32px; text-align: center; letter-spacing: 6px;
+    padding: 16px; font-weight: 700; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; color: var(--text); -webkit-appearance: none;
+  }
+  .pin-input:focus { outline: none; border-color: var(--navy); }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 22px 18px; border-radius: 14px;
+    font-size: 24px; font-weight: 700; border: none; cursor: pointer;
+    font-family: inherit; transition: transform 0.08s ease, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; pointer-events: none; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-photo   { background: var(--photo); color: #fff; }
+  .btn-harvest { background: var(--harvest); color: #fff; }
+  .btn-harvest.done { background: var(--good); }
+  .btn-send    { background: var(--gold); color: #fff; }
+  .btn-ghost   { background: transparent; color: var(--muted); font-size: 15px; font-weight: 500; padding: 12px; }
+
+  /* Room grid */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .tile {
+    position: relative; aspect-ratio: 1; border-radius: 14px;
+    background: #fff; border: 2px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 800; color: var(--navy); cursor: pointer;
+    font-family: inherit; padding: 0;
+  }
+  .tile:active { transform: scale(0.96); }
+  .tile .badge { font-size: 12px; font-weight: 700; margin-top: 3px; min-height: 16px; }
+  .tile.has-photo { border-color: var(--photo); background: #eff6ff; }
+  .tile.has-photo .badge { color: var(--photo); }
+  .tile.harvested { border-color: var(--harvest); background: #fff7ed; }
+  .tile.harvested .badge { color: var(--harvest); }
+
+  /* Room screen */
+  .room-name { font-size: 64px; font-weight: 800; color: var(--navy); text-align: center; letter-spacing: 1px; margin: 0; line-height: 1.1; }
+  .room-sub { text-align: center; color: var(--muted); font-size: 15px; margin-top: -8px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .photo-grid:empty { display: none; }
+  .photo-tile { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 2px solid var(--good); background: #f1f5f9; }
+  .photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-tile .remove {
+    position: absolute; top: 4px; right: 4px; width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(15,29,49,0.85); color: #fff; border: none; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; line-height: 1;
+  }
+  .note { text-align: center; color: var(--muted); font-size: 13px; }
+  .status { text-align: center; font-size: 16px; font-weight: 700; color: var(--harvest); min-height: 22px; }
+
+  footer { padding: 10px 16px; background: #fff; border-top: 1px solid var(--line); display: none; }
+  footer.show { display: block; }
+  footer .btn { padding: 16px; font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title">黄星农场 · 每日记录</div>
+    <div class="sub" id="headerSub">Yellow Star LLC · GAAI-QI5G-DEQQ</div>
+  </header>
+
+  <main>
+    <!-- PIN -->
+    <section class="screen active" id="screen-pin">
+      <div class="card" style="text-align:center;">
+        <h1>请输入密码</h1>
+        <p style="margin:0 0 16px; color:var(--muted); font-size:14px;">4 位数字</p>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="pin-input" id="inputPin" placeholder="••••" autocomplete="off" />
+        <div id="pinError" style="display:none; color:var(--warn); font-size:14px; margin-top:8px; font-weight:600;">密码错误，请重试</div>
+      </div>
+      <button class="btn btn-primary" id="btnPin">进入</button>
+    </section>
+
+    <!-- HOME: room grid -->
+    <section class="screen" id="screen-home">
+      <div class="note" style="font-size:15px;">点选房间 → 拍照 或 已收割</div>
+      <h2>开花房</h2>
+      <div class="grid" id="gridFlower"></div>
+      <h2>营养生长房</h2>
+      <div class="grid" id="gridVeg"></div>
+      <h2>育苗房</h2>
+      <div class="grid" id="gridProp"></div>
+      <div style="height:4px"></div>
+      <button class="btn btn-send" id="btnSend" disabled>📤 发送</button>
+      <div class="note" id="sendNote">还没有记录</div>
+      <button class="btn btn-ghost" id="btnReset">清空重来</button>
+    </section>
+
+    <!-- ROOM -->
+    <section class="screen" id="screen-room">
+      <div class="room-name" id="roomName">A1</div>
+      <div class="room-sub" id="roomSub"></div>
+      <div class="status" id="roomStatus"></div>
+      <div id="photoGrid" class="photo-grid"></div>
+      <button class="btn btn-photo" id="btnPhoto">📷 拍照</button>
+      <input type="file" id="inputImage" accept="image/*" multiple style="display:none" />
+      <button class="btn btn-harvest" id="btnHarvested">✂️ 已收割</button>
+    </section>
+  </main>
+
+  <footer id="footer">
+    <button class="btn btn-primary" id="btnBack">← 返回房间列表</button>
+  </footer>
+</div>
+
+<script>
+  // ---------- DATA ----------
+  const ROOMS = [
+    { sec: "flower", name: "A1" }, { sec: "flower", name: "A2" }, { sec: "flower", name: "A3" }, { sec: "flower", name: "A4" },
+    { sec: "flower", name: "B1" }, { sec: "flower", name: "B2" }, { sec: "flower", name: "B3" }, { sec: "flower", name: "B4" },
+    { sec: "flower", name: "B5" }, { sec: "flower", name: "B6" }, { sec: "flower", name: "B7" }, { sec: "flower", name: "B8" },
+    { sec: "flower", name: "C1" }, { sec: "flower", name: "C2" }, { sec: "flower", name: "C3" }, { sec: "flower", name: "C4" },
+    { sec: "flower", name: "C5" }, { sec: "flower", name: "C6" }, { sec: "flower", name: "F2" }, { sec: "flower", name: "G"  },
+    { sec: "veg",    name: "D"  }, { sec: "veg",    name: "E"  }, { sec: "veg",    name: "GH3" }, { sec: "veg",    name: "GH4" },
+    { sec: "prop",   name: "F1" }, { sec: "prop",   name: "H"  }
+  ];
+  const SEC_ZH = { flower: "开花房", veg: "营养生长房", prop: "育苗房" };
+  const SEC_EN = { flower: "FLOWER", veg: "VEG", prop: "PROP" };
+  const MAX_PHOTOS = 10;
+  const SEND_TO = "yellowstargroup@icloud.com";
+  const SUBMITTED_BY = "Mr. Wang";
+
+  // ---------- PHOTO STORAGE (IndexedDB; separate from Jana's walk form) ----------
+  const IDB_NAME = "yellowstar_wang_photos";
+  const IDB_STORE = "photos";
+  let _dbPromise = null;
+  function openPhotoDB() {
+    if (_dbPromise) return _dbPromise;
+    _dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return _dbPromise;
+  }
+  function idbOp(mode, fn) {
+    return openPhotoDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, mode);
+      const r = fn(tx.objectStore(IDB_STORE));
+      tx.oncomplete = () => resolve(r && r.result);
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  const idbPut = (key, val) => idbOp("readwrite", s => s.put(val, key));
+  const idbGet = key => idbOp("readonly", s => s.get(key));
+  const idbDelete = key => idbOp("readwrite", s => s.delete(key));
+  const idbClear = () => idbOp("readwrite", s => s.clear());
+  const photoKey = (room, id) => `${room}|${id}`;
+
+  // ---------- STATE ----------
+  const STORAGE_KEY = "yellowstar_wang_v1";
+  function todayISO() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
+  function initState() { return { date: todayISO(), room: null, results: {} }; }
+  function loadState() {
+    try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+    catch (e) { return null; }
+  }
+  function saveState() {
+    try {
+      const lite = { date: state.date, room: null, results: {} };
+      for (const k in state.results) {
+        const r = state.results[k];
+        lite.results[k] = {
+          harvested: !!r.harvested, harvestDate: r.harvestDate || null,
+          images: (r.images || []).map(i => ({ id: i.id, name: i.name }))
+        };
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
+    } catch (e) { console.error("saveState failed", e); }
+  }
+  let state = loadState();
+  // New day = fresh record
+  if (!state || state.date !== todayISO()) {
+    state = initState();
+    idbClear().catch(() => {});
+    saveState();
+  }
+  function resOf(name) {
+    if (!state.results[name]) state.results[name] = { harvested: false, harvestDate: null, images: [] };
+    return state.results[name];
+  }
+  function hasEntry(name) {
+    const r = state.results[name];
+    return !!r && (r.harvested || (r.images || []).length > 0);
+  }
+  function prune(name) { if (!hasEntry(name)) delete state.results[name]; }
+
+  // ---------- DOM ----------
+  const $ = id => document.getElementById(id);
+  const screens = { pin: $("screen-pin"), home: $("screen-home"), room: $("screen-room") };
+  const footer = $("footer");
+  const btnSend = $("btnSend"), sendNote = $("sendNote"), btnReset = $("btnReset");
+  const roomName = $("roomName"), roomSub = $("roomSub"), roomStatus = $("roomStatus");
+  const photoGrid = $("photoGrid"), btnPhoto = $("btnPhoto"), inputImage = $("inputImage");
+  const btnHarvested = $("btnHarvested"), btnBack = $("btnBack");
+  const grids = { flower: $("gridFlower"), veg: $("gridVeg"), prop: $("gridProp") };
+
+  function fmtDateZh(iso) { const [y, m, d] = iso.split("-"); return `${y}年${+m}月${+d}日`; }
+  $("headerSub").textContent = `${fmtDateZh(state.date)} · Yellow Star LLC`;
+
+  function show(name) {
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    screens[name].classList.add("active");
+    footer.classList.toggle("show", name === "room");
+    document.querySelector("main").scrollTop = 0;
+  }
+
+  // ---------- HOME ----------
+  function renderHome() {
+    Object.values(grids).forEach(g => g.innerHTML = "");
+    let rooms = 0, photos = 0, harvests = 0;
+    ROOMS.forEach(r => {
+      const res = state.results[r.name];
+      const n = res ? (res.images || []).length : 0;
+      const hv = !!(res && res.harvested);
+      const b = document.createElement("button");
+      b.className = "tile" + (hv ? " harvested" : (n ? " has-photo" : ""));
+      b.dataset.room = r.name;
+      let badge = "";
+      if (hv) badge = "已收割" + (n ? ` 📷${n}` : "");
+      else if (n) badge = `📷 ${n}`;
+      b.innerHTML = `<span>${r.name}</span><span class="badge">${badge}</span>`;
+      grids[r.sec].appendChild(b);
+      if (hv || n) rooms++;
+      photos += n; if (hv) harvests++;
+    });
+    btnSend.disabled = rooms === 0;
+    sendNote.textContent = rooms === 0 ? "还没有记录" : `照片 ${photos} 张 · 已收割 ${harvests} 间`;
+    btnReset.style.display = rooms === 0 ? "none" : "flex";
+  }
+  screens.home.addEventListener("click", e => {
+    const t = e.target.closest(".tile");
+    if (!t) return;
+    state.room = t.dataset.room;
+    renderRoom();
+    show("room");
+  });
+  btnReset.addEventListener("click", () => {
+    if (!confirm("清空今天的全部记录？")) return;
+    idbClear().catch(() => {});
+    state = initState();
+    saveState();
+    renderHome();
+  });
+
+  // ---------- ROOM ----------
+  function roomDef() { return ROOMS.find(r => r.name === state.room); }
+  async function hydrate(name) {
+    const res = state.results[name];
+    if (!res) return;
+    for (const img of res.images || []) {
+      if (!img.dataUrl && img.id) {
+        try { img.dataUrl = await idbGet(photoKey(name, img.id)); } catch (_) {}
+      }
+    }
+  }
+  async function renderRoom() {
+    const r = roomDef();
+    roomName.textContent = r.name;
+    roomSub.textContent = SEC_ZH[r.sec];
+    btnHarvested.style.display = r.sec === "flower" ? "flex" : "none";
+    await hydrate(r.name);
+    const res = state.results[r.name] || { images: [] };
+    const images = (res.images || []).filter(i => i.dataUrl);
+    photoGrid.innerHTML = "";
+    images.forEach((img, i) => {
+      const tile = document.createElement("div");
+      tile.className = "photo-tile";
+      tile.innerHTML = `<img src="${img.dataUrl}" alt=""><button class="remove" data-id="${img.id}" aria-label="删除">✕</button>`;
+      photoGrid.appendChild(tile);
+    });
+    const n = (res.images || []).length;
+    btnPhoto.disabled = n >= MAX_PHOTOS;
+    btnPhoto.textContent = n === 0 ? "📷 拍照" : `📷 再拍一张 (${n}/${MAX_PHOTOS})`;
+    if (res.harvested) {
+      btnHarvested.classList.add("done");
+      btnHarvested.textContent = "✓ 已收割";
+      roomStatus.textContent = `已收割 ${fmtDateZh(res.harvestDate || state.date)}（再点一次取消）`;
+    } else {
+      btnHarvested.classList.remove("done");
+      btnHarvested.textContent = "✂️ 已收割";
+      roomStatus.textContent = "";
+    }
+  }
+
+  function compressImage(file, maxDim = 800, quality = 0.55) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = e => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+            else { w = Math.round(w * maxDim / h); h = maxDim; }
+          }
+          const c = document.createElement("canvas");
+          c.width = w; c.height = h;
+          c.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL("image/jpeg", quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  btnPhoto.addEventListener("click", () => inputImage.click());
+  inputImage.addEventListener("change", async e => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const name = state.room;
+    const res = resOf(name);
+    btnPhoto.disabled = true;
+    btnPhoto.textContent = "处理中…";
+    let failed = 0;
+    for (const file of files) {
+      if (res.images.length >= MAX_PHOTOS) break;
+      try {
+        const dataUrl = await compressImage(file);
+        const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        await idbPut(photoKey(name, id), dataUrl);
+        res.images.push({ dataUrl, id, name: `${state.date}_${name}_${res.images.length + 1}.jpg` });
+      } catch (err) { console.error("photo save failed", err); failed++; }
+    }
+    prune(name);
+    saveState();
+    inputImage.value = "";
+    await renderRoom();
+    if (failed) alert(`有 ${failed} 张照片没有保存成功，请重拍。`);
+  });
+  photoGrid.addEventListener("click", e => {
+    const btn = e.target.closest(".remove");
+    if (!btn) return;
+    const name = state.room;
+    const res = state.results[name];
+    if (!res) return;
+    const i = res.images.findIndex(x => x.id === btn.dataset.id);
+    if (i < 0) return;
+    const removed = res.images.splice(i, 1)[0];
+    idbDelete(photoKey(name, removed.id)).catch(() => {});
+    prune(name);
+    saveState();
+    renderRoom();
+  });
+  btnHarvested.addEventListener("click", () => {
+    const name = state.room;
+    const res = resOf(name);
+    if (res.harvested) { res.harvested = false; res.harvestDate = null; }
+    else { res.harvested = true; res.harvestDate = todayISO(); }
+    prune(name);
+    saveState();
+    renderRoom();
+  });
+  btnBack.addEventListener("click", () => { state.room = null; renderHome(); show("home"); });
+
+  // ---------- PDF (English, for the compliance inbox) ----------
+  function getImageDims(dataUrl) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve({ w: 1024, h: 768 });
+      img.src = dataUrl;
+    });
+  }
+  function fmtResult(res) {
+    const parts = [];
+    if (res.harvested) parts.push(`HARVESTED ${res.harvestDate || state.date} · post-harvest cleaning complete`);
+    const n = (res.images || []).length;
+    if (n) parts.push(`${n} photo(s) attached`);
+    return parts.join(" · ");
+  }
+  async function buildPDF() {
+    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error("PDF 组件未加载，请检查网络");
+    for (const r of ROOMS) await hydrate(r.name);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const W = 612, H = 792, M = 40;
+    function drawHeader(small) {
+      doc.setFillColor(31, 58, 95);
+      doc.rect(0, 0, W, small ? 36 : 60, "F");
+      doc.setTextColor(255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(small ? 12 : 18);
+      doc.text("GROWER LOG - MR. WANG", M, small ? 18 : 28);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("Yellow Star LLC · GAAI-QI5G-DEQQ", M, small ? 30 : 44);
+      if (!small) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(state.date, W - M, 28, { align: "right" });
+      }
+      doc.setTextColor(0);
+    }
+    drawHeader();
+    const body = ROOMS.filter(r => hasEntry(r.name))
+      .map(r => [r.name, SEC_EN[r.sec], fmtResult(state.results[r.name])]);
+    doc.autoTable({
+      head: [["Room", "Type", "Result"]], body, startY: 76, theme: "striped",
+      headStyles: { fillColor: [31, 58, 95], textColor: 255, fontSize: 10, fontStyle: "bold" },
+      bodyStyles: { fontSize: 10, cellPadding: 5 },
+      margin: { left: M, right: M },
+      columnStyles: { 0: { cellWidth: 70, fontStyle: "bold" }, 1: { cellWidth: 70 }, 2: { cellWidth: "auto" } }
+    });
+    let y = doc.lastAutoTable.finalY + 30;
+    if (y > H - 80) { doc.addPage(); drawHeader(true); y = 80; }
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(102);
+    doc.text(`Submitted by: ${SUBMITTED_BY}`, M, y);
+    doc.text(`Date: ${state.date}`, M + 260, y);
+    doc.setTextColor(0);
+
+    for (const r of ROOMS) {
+      const photos = ((state.results[r.name] || {}).images || []).filter(p => p.dataUrl);
+      for (let i = 0; i < photos.length; i++) {
+        doc.addPage();
+        drawHeader(true);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+        doc.text(`${r.name} - photo ${i + 1} of ${photos.length}`, M, 56);
+        const dims = await getImageDims(photos[i].dataUrl);
+        const availW = W - 2 * M, availH = H - 90 - M;
+        let drawW = availW, drawH = drawW * dims.h / dims.w;
+        if (drawH > availH) { drawH = availH; drawW = drawH * dims.w / dims.h; }
+        try { doc.addImage(photos[i].dataUrl, "JPEG", M + (availW - drawW) / 2, 72, drawW, drawH); }
+        catch (e) { console.error("addImage failed", e); }
+      }
+    }
+    const total = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= total; p++) {
+      doc.setPage(p);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(140);
+      doc.text(`Page ${p} of ${total}`, W - M, H - 20, { align: "right" });
+      doc.text(`Email to ${SEND_TO}`, M, H - 20);
+    }
+    return doc.output("blob");
+  }
+
+  async function send() {
+    const [y, m, d] = state.date.split("-");
+    const subj = `Wang Log – ${m}/${d}/${y}`;
+    const filename = `Wang_Log_${state.date}.pdf`;
+    btnSend.disabled = true;
+    btnSend.textContent = "正在生成…";
+    let blob;
+    try { blob = await buildPDF(); }
+    catch (err) {
+      alert("生成失败：" + (err.message || err));
+      btnSend.textContent = "📤 发送"; renderHome();
+      return;
+    }
+    const file = new File([blob], filename, { type: "application/pdf" });
+    btnSend.textContent = "📤 发送"; renderHome();
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ title: subj, text: `To: ${SEND_TO}\nSubject: ${subj}`, files: [file] });
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    alert(`文件已下载：${filename}\n请用邮件发送到 ${SEND_TO}`);
+    window.location.href = `mailto:${SEND_TO}?subject=${encodeURIComponent(subj)}`;
+  }
+  btnSend.addEventListener("click", send);
+
+  // ---------- PIN ----------
+  const PIN_CODE = "2845";
+  const PIN_UNLOCK_KEY = "yellowstar_wang_pin_ok_v1";
+  const inputPin = $("inputPin"), pinError = $("pinError");
+  function enter() { renderHome(); show("home"); }
+  function tryUnlock() {
+    if (inputPin.value === PIN_CODE) {
+      localStorage.setItem(PIN_UNLOCK_KEY, "1");
+      enter();
+    } else {
+      pinError.style.display = "block";
+      inputPin.value = "";
+      inputPin.focus();
+      setTimeout(() => pinError.style.display = "none", 1500);
+    }
+  }
+  inputPin.addEventListener("input", () => {
+    inputPin.value = inputPin.value.replace(/\D/g, "").slice(0, 4);
+    if (inputPin.value.length === 4) tryUnlock();
+  });
+  $("btnPin").addEventListener("click", tryUnlock);
+
+  // ---------- SERVICE WORKER ----------
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").catch(err => console.warn("SW register failed:", err));
+    });
+  }
+
+  // ---------- INIT ----------
+  if (localStorage.getItem(PIN_UNLOCK_KEY) === "1") enter();
+  else { show("pin"); setTimeout(() => inputPin.focus(), 100); }
+</script>
+</body>
+</html>

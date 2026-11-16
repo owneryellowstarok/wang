@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="王先生记录" />
-<title>王先生 · 每日记录</title>
+<meta name="apple-mobile-web-app-title" content="黄星记录" />
+<title>黄星 LLC · 每日记录</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -109,7 +109,7 @@
 <body>
 <div class="app">
   <header>
-    <div class="title">王先生 · 每日记录</div>
+    <div class="title">黄星 LLC · 每日记录</div>
     <div class="sub" id="headerSub">Yellow Star LLC · GAAI-QI5G-DEQQ</div>
     <div class="sub">OMMA GAAI-QI5G-DEQQ · DEA DCN W26094979E</div>
   </header>
@@ -275,7 +275,7 @@
   const grids = { flower: $("gridFlower"), veg: $("gridVeg"), prop: $("gridProp") };
 
   function fmtDateZh(iso) { const [y, m, d] = iso.split("-"); return `${y}年${+m}月${+d}日`; }
-  $("headerSub").textContent = `${fmtDateZh(state.date)} · Yellow Star LLC`;
+  $("headerSub").textContent = `${fmtDateZh(state.date)} · 王先生`;
 
   function show(name) {
     Object.values(screens).forEach(s => s.classList.remove("active"));

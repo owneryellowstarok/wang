@@ -85,6 +85,12 @@
     background: rgba(15,29,49,0.85); color: #fff; border: none; font-size: 15px; font-weight: 700;
     display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; line-height: 1;
   }
+  .bag-card { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; }
+  .stepper { width: 60px; height: 60px; border-radius: 50%; border: none; background: var(--navy); color: #fff; font-size: 34px; font-weight: 700; line-height: 1; cursor: pointer; font-family: inherit; }
+  .stepper:active { transform: scale(0.94); }
+  .stepper:disabled { background: #cbd5e1; }
+  .bag-num { font-size: 48px; font-weight: 800; color: var(--navy); line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
+  .bag-label { color: var(--muted); font-size: 15px; margin-top: 4px; text-align: center; }
   .note { text-align: center; color: var(--muted); font-size: 13px; }
   .status { text-align: center; font-size: 16px; font-weight: 700; color: var(--harvest); min-height: 22px; }
 
@@ -115,7 +121,7 @@
 
     <!-- HOME: room grid -->
     <section class="screen" id="screen-home">
-      <div class="note" style="font-size:15px;">点选房间 → 拍照 或 已收割</div>
+      <div class="note" style="font-size:15px;">点选房间 → 拍照 / 已收割 / 垃圾袋数</div>
       <h2>开花房</h2>
       <div class="grid" id="gridFlower"></div>
       <h2>营养生长房</h2>
@@ -137,6 +143,11 @@
       <button class="btn btn-photo" id="btnPhoto">📷 拍照</button>
       <input type="file" id="inputImage" accept="image/*" multiple style="display:none" />
       <button class="btn btn-harvest" id="btnHarvested">✂️ 已收割</button>
+      <div class="card bag-card">
+        <button class="stepper" id="bagsMinus" aria-label="减少">−</button>
+        <div><div class="bag-num" id="bagNum">0</div><div class="bag-label">🗑 垃圾袋数</div></div>
+        <button class="stepper" id="bagsPlus" aria-label="增加">+</button>
+      </div>
     </section>
   </main>
 
@@ -207,7 +218,7 @@
       for (const k in state.results) {
         const r = state.results[k];
         lite.results[k] = {
-          harvested: !!r.harvested, harvestDate: r.harvestDate || null,
+          harvested: !!r.harvested, harvestDate: r.harvestDate || null, bags: r.bags || 0,
           images: (r.images || []).map(i => ({ id: i.id, name: i.name }))
         };
       }
@@ -222,12 +233,12 @@
     saveState();
   }
   function resOf(name) {
-    if (!state.results[name]) state.results[name] = { harvested: false, harvestDate: null, images: [] };
+    if (!state.results[name]) state.results[name] = { harvested: false, harvestDate: null, bags: 0, images: [] };
     return state.results[name];
   }
   function hasEntry(name) {
     const r = state.results[name];
-    return !!r && (r.harvested || (r.images || []).length > 0);
+    return !!r && (r.harvested || (r.bags || 0) > 0 || (r.images || []).length > 0);
   }
   function prune(name) { if (!hasEntry(name)) delete state.results[name]; }
 
@@ -254,24 +265,27 @@
   // ---------- HOME ----------
   function renderHome() {
     Object.values(grids).forEach(g => g.innerHTML = "");
-    let rooms = 0, photos = 0, harvests = 0;
+    let rooms = 0, photos = 0, harvests = 0, bagsTotal = 0;
     ROOMS.forEach(r => {
       const res = state.results[r.name];
       const n = res ? (res.images || []).length : 0;
       const hv = !!(res && res.harvested);
+      const bg = res ? (res.bags || 0) : 0;
       const b = document.createElement("button");
-      b.className = "tile" + (hv ? " harvested" : (n ? " has-photo" : ""));
+      b.className = "tile" + (hv ? " harvested" : ((n || bg) ? " has-photo" : ""));
       b.dataset.room = r.name;
-      let badge = "";
-      if (hv) badge = "已收割" + (n ? ` 📷${n}` : "");
-      else if (n) badge = `📷 ${n}`;
+      const bits = [];
+      if (hv) bits.push("已收割");
+      if (n) bits.push(`📷${n}`);
+      if (bg) bits.push(`🗑${bg}`);
+      const badge = bits.join(" ");
       b.innerHTML = `<span>${r.name}</span><span class="badge">${badge}</span>`;
       grids[r.sec].appendChild(b);
-      if (hv || n) rooms++;
-      photos += n; if (hv) harvests++;
+      if (hv || n || bg) rooms++;
+      photos += n; bagsTotal += bg; if (hv) harvests++;
     });
     btnSend.disabled = rooms === 0;
-    sendNote.textContent = rooms === 0 ? "还没有记录" : `照片 ${photos} 张 · 已收割 ${harvests} 间`;
+    sendNote.textContent = rooms === 0 ? "还没有记录" : `照片 ${photos} 张 · 已收割 ${harvests} 间 · 垃圾 ${bagsTotal} 袋`;
     btnReset.style.display = rooms === 0 ? "none" : "flex";
   }
   screens.home.addEventListener("click", e => {
@@ -315,6 +329,8 @@
       tile.innerHTML = `<img src="${img.dataUrl}" alt=""><button class="remove" data-id="${img.id}" aria-label="删除">✕</button>`;
       photoGrid.appendChild(tile);
     });
+    $("bagNum").textContent = res.bags || 0;
+    $("bagsMinus").disabled = !(res.bags > 0);
     const n = (res.images || []).length;
     btnPhoto.disabled = n >= MAX_PHOTOS;
     btnPhoto.textContent = n === 0 ? "📷 拍照" : `📷 再拍一张 (${n}/${MAX_PHOTOS})`;
@@ -400,6 +416,16 @@
     saveState();
     renderRoom();
   });
+  function bumpBags(d) {
+    const name = state.room;
+    const res = resOf(name);
+    res.bags = Math.max(0, (res.bags || 0) + d);
+    prune(name);
+    saveState();
+    renderRoom();
+  }
+  $("bagsMinus").addEventListener("click", () => bumpBags(-1));
+  $("bagsPlus").addEventListener("click", () => bumpBags(1));
   btnBack.addEventListener("click", () => { state.room = null; renderHome(); show("home"); });
 
   // ---------- PDF (English, for the compliance inbox) ----------
@@ -416,7 +442,7 @@
     if (res.harvested) parts.push(`HARVESTED ${res.harvestDate || state.date} · post-harvest cleaning complete`);
     const n = (res.images || []).length;
     if (n) parts.push(`${n} photo(s) attached`);
-    return parts.join(" · ");
+    return parts.join(" · ") || "-";
   }
   async function buildPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) throw new Error("PDF 组件未加载，请检查网络");
@@ -443,13 +469,15 @@
     }
     drawHeader();
     const body = ROOMS.filter(r => hasEntry(r.name))
-      .map(r => [r.name, SEC_EN[r.sec], fmtResult(state.results[r.name])]);
+      .map(r => [r.name, SEC_EN[r.sec], fmtResult(state.results[r.name]), String(state.results[r.name].bags || 0)]);
+    const bagsTotal = ROOMS.reduce((t, r) => t + ((state.results[r.name] || {}).bags || 0), 0);
+    body.push(["TOTAL", "", "Non-MMJ waste bags out today", String(bagsTotal)]);
     doc.autoTable({
-      head: [["Room", "Type", "Result"]], body, startY: 76, theme: "striped",
+      head: [["Room", "Type", "Result", "Waste bags"]], body, startY: 76, theme: "striped",
       headStyles: { fillColor: [31, 58, 95], textColor: 255, fontSize: 10, fontStyle: "bold" },
       bodyStyles: { fontSize: 10, cellPadding: 5 },
       margin: { left: M, right: M },
-      columnStyles: { 0: { cellWidth: 70, fontStyle: "bold" }, 1: { cellWidth: 70 }, 2: { cellWidth: "auto" } }
+      columnStyles: { 0: { cellWidth: 60, fontStyle: "bold" }, 1: { cellWidth: 60 }, 2: { cellWidth: "auto" }, 3: { cellWidth: 70, halign: "center" } }
     });
     let y = doc.lastAutoTable.finalY + 30;
     if (y > H - 80) { doc.addPage(); drawHeader(true); y = 80; }

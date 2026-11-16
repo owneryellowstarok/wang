@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#15294D" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="黄星记录" />
@@ -104,12 +105,49 @@
   footer { padding: 10px 16px; background: #fff; border-top: 1px solid var(--line); display: none; }
   footer.show { display: block; }
   footer .btn { padding: 16px; font-size: 20px; }
+
+  /* ---- Yellow Star branding ---- */
+  :root { --navy: #15294D; --gold: #F2B01E; --gold-dark: #D9941A; --bg: #f3f5f9; }
+  body { background: linear-gradient(180deg, #eef1f7 0%, #f6f8fb 240px); }
+  header { background: linear-gradient(135deg, #0f1f3d 0%, #15294D 55%, #1f3a5f 100%); border-bottom: 3px solid var(--gold); padding: 12px 16px 10px; box-shadow: 0 2px 10px rgba(15,29,49,0.25); position: relative; z-index: 2; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .brand .logo { width: 44px; height: 44px; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+  .wordmark { font-size: 21px; font-weight: 800; letter-spacing: 3px; line-height: 1.1; color: #fff; }
+  .wordmark span { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: var(--gold); margin-left: 4px; vertical-align: middle; }
+  header .title { font-size: 14px; font-weight: 600; letter-spacing: 1px; color: var(--gold); margin-top: 3px; }
+  header .sub { font-size: 11px; opacity: 0.78; }
+  .pin-logo { display: flex; flex-direction: column; align-items: center; margin-bottom: 14px; }
+  .pin-logo svg { width: 84px; height: 84px; filter: drop-shadow(0 2px 3px rgba(21,41,77,0.25)); }
+  .pin-logo .pw { font-size: 24px; font-weight: 800; letter-spacing: 4px; color: var(--navy); margin-top: 4px; }
+  .pin-logo .rule { width: 120px; height: 2px; background: var(--gold); margin: 6px 0 4px; border-radius: 2px; }
+  .pin-logo .llc { font-size: 11px; font-weight: 700; letter-spacing: 6px; color: var(--gold-dark); padding-left: 6px; }
+  .card { border: 1px solid rgba(21,41,77,0.06); box-shadow: 0 2px 8px rgba(21,41,77,0.08); }
+  h2 { color: var(--navy); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  h2::before { content: "★"; color: var(--gold); font-size: 15px; }
+  h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(21,41,77,0.18), rgba(21,41,77,0)); }
+  .tile { border: 1.5px solid #dfe4ee; box-shadow: 0 1px 3px rgba(21,41,77,0.08); background: linear-gradient(180deg, #ffffff, #f8fafd); }
+  .tile.has-photo { background: linear-gradient(180deg, #f3f8ff, #e6f0ff); }
+  .tile.harvested { background: linear-gradient(180deg, #fffaf2, #ffefd9); }
+  .tile.skipped { background: linear-gradient(180deg, #f6f8fb, #e9edf3); }
+  .btn { box-shadow: 0 2px 6px rgba(21,41,77,0.18); }
+  .btn-ghost { box-shadow: none; }
+  .btn-primary { background: linear-gradient(180deg, #1d3766, #15294D); }
+  .btn-photo { background: linear-gradient(180deg, #3b7bf0, #2563eb); }
+  .btn-harvest { background: linear-gradient(180deg, #c8620f, #b45309); }
+  .btn-harvest.done, .btn-skip.done { background: linear-gradient(180deg, #1fb457, #16a34a); }
+  .btn-skip { background: linear-gradient(180deg, #5b6b82, #475569); }
+  .btn-send { background: linear-gradient(180deg, #f7bf3a, #F2B01E); color: var(--navy); border: 1px solid var(--gold-dark); }
+  .room-name { text-shadow: 0 1px 0 #fff; }
+  .stepper { background: linear-gradient(180deg, #1d3766, #15294D); box-shadow: 0 2px 5px rgba(21,41,77,0.25); }
+  .stepper:disabled { box-shadow: none; }
+  footer { box-shadow: 0 -2px 8px rgba(21,41,77,0.06); }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ys-star" viewBox="0 0 100 100"><path d="M50.00 52.00L50.00 4.00L60.78 37.17Z" fill="#F2B01E"/><path d="M50.00 52.00L60.78 37.17L95.65 37.17Z" fill="#D9941A"/><path d="M50.00 52.00L95.65 37.17L67.44 57.67Z" fill="#F2B01E"/><path d="M50.00 52.00L67.44 57.67L78.21 90.83Z" fill="#D9941A"/><path d="M50.00 52.00L78.21 90.83L50.00 70.34Z" fill="#F2B01E"/><path d="M50.00 52.00L50.00 70.34L21.79 90.83Z" fill="#D9941A"/><path d="M50.00 52.00L21.79 90.83L32.56 57.67Z" fill="#F2B01E"/><path d="M50.00 52.00L32.56 57.67L4.35 37.17Z" fill="#D9941A"/><path d="M50.00 52.00L4.35 37.17L39.22 37.17Z" fill="#F2B01E"/><path d="M50.00 52.00L39.22 37.17L50.00 4.00Z" fill="#D9941A"/></symbol></svg>
 <div class="app">
   <header>
-    <div class="title">黄星 LLC · 每日记录</div>
+    <div class="brand"><svg class="logo" viewBox="0 0 100 100"><use href="#ys-star"/></svg><div><div class="wordmark">YELLOW STAR<span>LLC</span></div><div class="title">黄星 LLC · 每日记录</div></div></div>
     <div class="sub" id="headerSub">Yellow Star LLC · GAAI-QI5G-DEQQ</div>
     <div class="sub">OMMA GAAI-QI5G-DEQQ · DEA DCN W26094979E</div>
   </header>
@@ -118,6 +156,7 @@
     <!-- PIN -->
     <section class="screen active" id="screen-pin">
       <div class="card" style="text-align:center;">
+        <div class="pin-logo"><svg viewBox="0 0 100 100"><use href="#ys-star"/></svg><div class="pw">YELLOW STAR</div><div class="rule"></div><div class="llc">LLC</div></div>
         <h1>请输入密码</h1>
         <p style="margin:0 0 16px; color:var(--muted); font-size:14px;">4 位数字</p>
         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="pin-input" id="inputPin" placeholder="••••" autocomplete="off" />

@@ -154,7 +154,7 @@
 
   <main>
     <!-- PIN -->
-    <section class="screen active" id="screen-pin">
+    <section class="screen" id="screen-pin">
       <div class="card" style="text-align:center;">
         <div class="pin-logo"><svg viewBox="0 0 100 100"><use href="#ys-star"/></svg><div class="pw">YELLOW STAR</div><div class="rule"></div><div class="llc">LLC</div></div>
         <h1>请输入密码</h1>
@@ -679,8 +679,7 @@
   }
 
   // ---------- INIT ----------
-  if (localStorage.getItem(PIN_UNLOCK_KEY) === "1") enter();
-  else { show("pin"); setTimeout(() => inputPin.focus(), 100); }
+  enter(); // password removed 11/16/26 per Master
 </script>
 </body>
 </html>

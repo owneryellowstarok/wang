@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="黄星记录" />
-<title>黄星 · 王先生记录</title>
+<meta name="apple-mobile-web-app-title" content="王先生记录" />
+<title>王先生 · 每日记录</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -64,6 +64,8 @@
     font-size: 24px; font-weight: 800; color: var(--navy); cursor: pointer;
     font-family: inherit; padding: 0;
   }
+  .grid.five { grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .grid.five .tile { font-size: 19px; }
   .tile:active { transform: scale(0.96); }
   .tile .badge { font-size: 12px; font-weight: 700; margin-top: 3px; min-height: 16px; }
   .tile.has-photo { border-color: var(--photo); background: #eff6ff; }
@@ -94,8 +96,9 @@
 <body>
 <div class="app">
   <header>
-    <div class="title">黄星农场 · 每日记录</div>
+    <div class="title">王先生 · 每日记录</div>
     <div class="sub" id="headerSub">Yellow Star LLC · GAAI-QI5G-DEQQ</div>
+    <div class="sub">OMMA GAAI-QI5G-DEQQ · DEA DCN W26094979E</div>
   </header>
 
   <main>
@@ -116,7 +119,7 @@
       <h2>开花房</h2>
       <div class="grid" id="gridFlower"></div>
       <h2>营养生长房</h2>
-      <div class="grid" id="gridVeg"></div>
+      <div class="grid five" id="gridVeg"></div>
       <h2>育苗房</h2>
       <div class="grid" id="gridProp"></div>
       <div style="height:4px"></div>
@@ -149,8 +152,8 @@
     { sec: "flower", name: "B1" }, { sec: "flower", name: "B2" }, { sec: "flower", name: "B3" }, { sec: "flower", name: "B4" },
     { sec: "flower", name: "B5" }, { sec: "flower", name: "B6" }, { sec: "flower", name: "B7" }, { sec: "flower", name: "B8" },
     { sec: "flower", name: "C1" }, { sec: "flower", name: "C2" }, { sec: "flower", name: "C3" }, { sec: "flower", name: "C4" },
-    { sec: "flower", name: "C5" }, { sec: "flower", name: "C6" }, { sec: "flower", name: "F2" }, { sec: "flower", name: "G"  },
-    { sec: "veg",    name: "D"  }, { sec: "veg",    name: "E"  }, { sec: "veg",    name: "GH3" }, { sec: "veg",    name: "GH4" },
+    { sec: "flower", name: "C5" }, { sec: "flower", name: "C6" }, { sec: "flower", name: "F2" },
+    { sec: "veg",    name: "D"  }, { sec: "veg",    name: "E"  }, { sec: "veg",    name: "G"  }, { sec: "veg",    name: "GH3" }, { sec: "veg",    name: "GH4" },
     { sec: "prop",   name: "F1" }, { sec: "prop",   name: "H"  }
   ];
   const SEC_ZH = { flower: "开花房", veg: "营养生长房", prop: "育苗房" };
@@ -430,7 +433,7 @@
       doc.text("GROWER LOG - MR. WANG", M, small ? 18 : 28);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.text("Yellow Star LLC · GAAI-QI5G-DEQQ", M, small ? 30 : 44);
+      doc.text("Yellow Star LLC · GAAI-QI5G-DEQQ · DEA DCN W26094979E", M, small ? 30 : 44);
       if (!small) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
